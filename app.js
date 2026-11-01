@@ -1,14 +1,14 @@
 (() => {
   'use strict';
-  const STORAGE_KEY = 'sidequest-save-v1';
+  const STORAGE_KEY = 'sidequest-save-v2';
   const CATEGORIES = [
-    {id:'all', name:'All quests', symbol:'sparkles'},
-    {id:'adventure', name:'Adventure', symbol:'compass'},
-    {id:'creative', name:'Creative', symbol:'pen'},
-    {id:'social', name:'Social', symbol:'users'},
-    {id:'chaos', name:'Chaos', symbol:'shuffle'},
-    {id:'mind', name:'Mind', symbol:'brain'},
-    {id:'wildcard', name:'Wildcard', symbol:'asterisk'}
+    {id:'all', name:'Everything', symbol:'sparkles'},
+    {id:'adventure', name:'Go out', symbol:'compass'},
+    {id:'creative', name:'Create', symbol:'pen'},
+    {id:'social', name:'With friends', symbol:'users'},
+    {id:'chaos', name:'Take it easy', symbol:'shuffle'},
+    {id:'mind', name:'Learn', symbol:'brain'},
+    {id:'wildcard', name:'Switch it up', symbol:'asterisk'}
   ];
   const ICONS = {
     sparkles:'<path d="m12 3 1.9 5.6L19.5 10.5l-5.6 1.9L12 18l-1.9-5.6L4.5 10.5l5.6-1.9L12 3Z"/><path d="m19 17 .7 1.6L21.5 19l-1.8.7L19 21.5l-.7-1.8L16.5 19l1.8-.4L19 17Z"/>',
@@ -39,11 +39,12 @@
   const htmlEscape = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const fmtDate = timestamp => new Intl.DateTimeFormat('en',{month:'short',day:'numeric',year:'numeric'}).format(new Date(timestamp));
   const byId = Object.fromEntries(QUESTS.map(q => [q.id,q]));
-  const DEFAULT = () => ({favorites:[],history:[],currentQuestId:null,activeQuestId:null,filters:{category:'all',time:'any',place:'any',company:'any'}});
+  const DEFAULT = () => ({favorites:[],history:[],currentQuestId:null,activeQuestId:null,filters:{category:'all',time:'any',place:'any',company:'any'},showPoints:false});
   const validate = incoming => {
     const fallback=DEFAULT();
     if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) return fallback;
     const o={...fallback};
+    o.showPoints=incoming.showPoints===true;
     o.favorites=Array.isArray(incoming.favorites)?[...new Set(incoming.favorites.filter(id=>typeof id==='string'&&byId[id]))]:[];
     o.history=Array.isArray(incoming.history)?incoming.history.filter(item=>item && byId[item.id] && item.type==='completed' && typeof item.when==='number' && Number.isFinite(item.when) && item.when>0 && item.when<Date.now()+86400000).slice(-2000).map(item=>({id:item.id,type:'completed',when:item.when,xp:typeof item.xp==='number'&&Number.isFinite(item.xp)?Math.max(0,Math.min(100,item.xp)):0})):[];
     o.currentQuestId=byId[incoming.currentQuestId]?incoming.currentQuestId:null;
@@ -88,76 +89,77 @@
   function render(){
     const s=stats();
     const main= currentView==='discover'?discover():currentView==='saved'?savedPage():currentView==='journey'?journey():settingsPage();
-    app.innerHTML=`<header class="topbar"><div class="brand"><span class="brand-mark">${ico('asterisk',21)}</span> SIDEQUEST<span style="color:#9ba396">.</span></div><div class="topbar-right"><span class="level-chip"><span class="orb"></span> LVL ${s.level}</span><button class="icon-button" data-nav="settings" aria-label="Settings">${ico('settings',17)}</button></div></header>${main}<nav class="bottom-nav" aria-label="Main navigation">${navButton('discover','Discover','compass')}${navButton('saved','Saved','heart')}${navButton('journey','Journey','chart')}${navButton('settings','Settings','settings')}</nav>`;
+    app.innerHTML=`<header class="topbar"><div class="brand"><span class="brand-mark">${ico('asterisk',21)}</span> SIDEQUEST<span style="color:#9ba396">.</span></div><div class="topbar-right">${saved.showPoints?`<span class="level-chip"><span class="orb"></span> LVL ${s.level}</span>`:''}<button class="icon-button" data-nav="settings" aria-label="Settings">${ico('settings',17)}</button></div></header>${main}<nav class="bottom-nav" aria-label="Main navigation">${navButton('discover','Discover','compass')}${navButton('saved','Saved','heart')}${navButton('journey','Journey','chart')}${navButton('settings','Settings','settings')}</nav>`;
     renderModal();
   }
   const option=(val,title,selected)=>`<option value="${val}" ${selected===val?'selected':''}>${title}</option>`;
   function discover(){
     const s=stats();
     const catBtns=CATEGORIES.map(c=>`<button type="button" class="pill ${saved.filters.category===c.id?'active':''}" data-category="${c.id}" aria-pressed="${saved.filters.category===c.id}">${ico(c.symbol,13)} ${c.name}</button>`).join('');
-    return `<section class="hero"><div class="eyebrow">YOUR EVERYDAY ADVENTURE</div><h1>Less scrolling.<br><span>More living.</span></h1><p>For the days when “I'm bored” is the only plan. A little adventure is one tap away.</p></section>
-    <section class="stats-strip" aria-label="Your stats"><div class="stat"><div class="num">${s.count}</div><div class="lab">Quests done</div></div><div class="stat-sep"></div><div class="stat"><div class="num">${s.xp}</div><div class="lab">Total XP</div></div><div class="stat-sep"></div><div class="stat"><div class="num">${s.favorites}</div><div class="lab">Saved</div></div></section>
-    <section aria-label="Choose your quest"><div class="section-top"><span class="section-title">Choose your vibe</span><span class="count-note">6 worlds · 120 quests</span></div><div class="category-scroll">${catBtns}</div>
+    return `<section class="hero"><div class="eyebrow">FOR WHEN YOU'RE BORED</div><h1>Less scrolling.<br><span>More doing.</span></h1><p>Actual things you might enjoy doing. No dares, no awkward challenges — just something to try.</p></section>
+    <section class="stats-strip" aria-label="Your stats"><div class="stat"><div class="num">${s.count}</div><div class="lab">Done</div></div><div class="stat-sep"></div><div class="stat"><div class="num">${saved.showPoints?s.xp:new Set([...completeIds()].map(id=>byId[id].category)).size}</div><div class="lab">${saved.showPoints?'Total XP':'Categories tried'}</div></div><div class="stat-sep"></div><div class="stat"><div class="num">${s.favorites}</div><div class="lab">Saved</div></div></section>
+    <section aria-label="Choose your quest"><div class="section-top"><span class="section-title">Choose your vibe</span><span class="count-note">120 ideas</span></div><div class="category-scroll">${catBtns}</div>
     <div class="filter-box"><label><span class="filter-label">I have...</span><span class="select-wrap"><select data-filter="time" aria-label="Available time">${option('any','Any time',saved.filters.time)}${option('5','5 min',saved.filters.time)}${option('10','10 min',saved.filters.time)}${option('15','15 min',saved.filters.time)}${option('20','20 min',saved.filters.time)}${option('30','30 min',saved.filters.time)}${option('60','1 hour',saved.filters.time)}</select></span></label>
     <label><span class="filter-label">I'm...</span><span class="select-wrap"><select data-filter="place" aria-label="Location">${option('any','Anywhere',saved.filters.place)}${option('indoor','Inside',saved.filters.place)}${option('outdoor','Outside',saved.filters.place)}</select></span></label>
-    <label><span class="filter-label">Playing...</span><span class="select-wrap"><select data-filter="company" aria-label="Company">${option('any','Any mode',saved.filters.company)}${option('solo','Solo',saved.filters.company)}${option('friends','With friends',saved.filters.company)}</select></span></label></div></section>
+    <label><span class="filter-label">With...</span><span class="select-wrap"><select data-filter="company" aria-label="Company">${option('any','Anyone',saved.filters.company)}${option('solo','Solo',saved.filters.company)}${option('friends','With friends',saved.filters.company)}</select></span></label></div></section>
     ${questCard()}`;
   }
   function questCard(){
     const candidates=filtered();
     const q=saved.activeQuestId?byId[saved.activeQuestId]:byId[saved.currentQuestId];
-    if(!candidates.length && !saved.activeQuestId){return `<section class="empty"><div class="empty-icon">${ico('compass',24)}</div><h3>No quests match... yet.</h3><p>Try a little more time, a different setting, or another category.</p><button class="btn btn-primary" data-action="reset-filters">Reset filters ${ico('arrow',15)}</button></section>`;}
-    if(!q){return `<section class="empty"><div class="empty-icon">${ico('sparkles',25)}</div><h3>Ready for a side quest?</h3><p>${candidates.length} missions match your vibe. Your next little adventure starts here.</p><button class="btn btn-primary" data-action="roll">Find my quest ${ico('arrow',16)}</button></section>`;}
+    if(!candidates.length && !saved.activeQuestId){return `<section class="empty"><div class="empty-icon">${ico('compass',24)}</div><h3>Nothing matches right now.</h3><p>Try a little more time, a different setting, or another category.</p><button class="btn btn-primary" data-action="reset-filters">Reset filters ${ico('arrow',15)}</button></section>`;}
+    if(!q){return `<section class="empty"><div class="empty-icon">${ico('sparkles',25)}</div><h3>Want something to do?</h3><p>${candidates.length} ideas match your preferences. Pick one you feel like doing.</p><button class="btn btn-primary" data-action="roll">Give me an idea ${ico('arrow',16)}</button></section>`;}
     const cat=categoryInfo(q.category),running=saved.activeQuestId===q.id,isFav=saved.favorites.includes(q.id),done=completeIds().has(q.id);
-    return `<article class="quest-card" aria-label="Current quest"><div class="quest-head"><span class="quest-flag"><span class="dot"></span>${running?'IN PROGRESS':'NEW QUEST'}</span><span class="quest-tag">${htmlEscape(cat.name)}</span></div><div class="quest-body"><div class="quest-index">MISSION ${q.id.split('-')[1]} / 20</div><h2 class="quest-title">${htmlEscape(q.title)}</h2><p class="quest-desc">${htmlEscape(q.description)}</p></div>
-    ${running?`<div class="active-banner">${ico('sparkles',15)} Quest accepted. Your adventure is underway!</div>`:''}
-    <div class="quest-meta"><span class="meta-chip">${ico('clock',15)} ${q.minutes} min</span><span class="meta-chip">${ico('pin',15)} ${q.place==='either'?'Anywhere':q.place==='indoor'?'Indoor':'Outdoor'}</span><span class="meta-chip xp">${ico('star',15)} ${done?'Replay':'+'+q.xp+' XP'}</span></div>
-    <div class="quest-actions"><button class="btn btn-light" data-action="${running?'skip':'roll'}">${ico('shuffle',17)} ${running?'Skip quest':'Another one'}</button><button class="btn ${running?'btn-accent':'btn-primary'}" data-action="${running?'complete':'start'}">${ico(running?'check':'arrow',17)} ${running?'Finish quest':'Accept quest'}</button></div></article>
-    <div class="card-tools"><span class="tool-note">${candidates.length} matching quests · Do it at your own pace. You can always skip.</span><button class="heart-button ${isFav?'saved':''}" data-action="favorite" aria-pressed="${isFav}" aria-label="${isFav?'Remove from favorites':'Save to favorites'}">${ico('heart',19)}</button></div>`;
+    return `<article class="quest-card" aria-label="Current quest"><div class="quest-head"><span class="quest-flag"><span class="dot"></span>${running?'IN PROGRESS':'SOMETHING TO TRY'}</span><span class="quest-tag">${htmlEscape(cat.name)}</span></div><div class="quest-body"><div class="quest-index">IDEA ${q.id.split('-')[1]} / 20</div><h2 class="quest-title">${htmlEscape(q.title)}</h2><p class="quest-desc">${htmlEscape(q.description)}</p></div>
+    ${running?`<div class="active-banner">${ico('check',15)} Saved as your current activity. Take your time.</div>`:''}
+    <div class="quest-meta"><span class="meta-chip">${ico('clock',15)} ${q.minutes} min</span><span class="meta-chip">${ico('pin',15)} ${q.place==='either'?'Anywhere':q.place==='indoor'?'Indoor':'Outdoor'}</span>${saved.showPoints?`<span class="meta-chip xp">${ico('star',15)} ${done?'Repeat':'+'+q.xp+' XP'}</span>`:''}</div>
+    <div class="quest-actions"><button class="btn btn-light" data-action="${running?'skip':'roll'}">${ico('shuffle',17)} ${running?'Not now':'Another idea'}</button><button class="btn ${running?'btn-accent':'btn-primary'}" data-action="${running?'complete':'start'}">${ico(running?'check':'arrow',17)} ${running?'Mark done':'Try this'}</button></div></article>
+    <div class="card-tools"><span class="tool-note">${candidates.length} matching ideas · Nothing is mandatory. Skip anything you don't feel like doing.</span><button class="heart-button ${isFav?'saved':''}" data-action="favorite" aria-pressed="${isFav}" aria-label="${isFav?'Remove from favorites':'Save to favorites'}">${ico('heart',19)}</button></div>`;
   }
   function savedPage(){
     const quests=saved.favorites.map(id=>byId[id]).filter(Boolean);
-    return `<div class="eyebrow">YOUR COLLECTION</div><h1 class="page-title">Good ones.<br>Kept close.</h1><p class="page-sub">Save the adventures you want to try again. Your collection lives on this device.</p><div class="section-top"><span class="section-title">Favorite quests</span><span class="count-note">${quests.length} saved</span></div>${quests.length?quests.map(q=>`<button type="button" class="saved-item" data-open-quest="${q.id}"><span class="circle-symbol">${ico(categoryInfo(q.category).symbol,19)}</span><span class="saved-info"><strong>${htmlEscape(q.title)}</strong><small>${categoryInfo(q.category).name} · ${q.minutes} min · +${q.xp} XP</small></span>${ico('arrow',17)}</button>`).join(''):`<div class="empty"><div class="empty-icon">${ico('heart',25)}</div><h3>Your favorites are waiting.</h3><p>Find a quest you love and tap the heart to keep it here.</p><button class="btn btn-primary" data-nav="discover">Explore quests ${ico('arrow',15)}</button></div>`}`;
+    return `<div class="eyebrow">YOUR SHORTLIST</div><h1 class="page-title">Ideas worth<br>keeping.</h1><p class="page-sub">Save the activities you actually like. Your collection stays on this device.</p><div class="section-top"><span class="section-title">Saved ideas</span><span class="count-note">${quests.length} saved</span></div>${quests.length?quests.map(q=>`<button type="button" class="saved-item" data-open-quest="${q.id}"><span class="circle-symbol">${ico(categoryInfo(q.category).symbol,19)}</span><span class="saved-info"><strong>${htmlEscape(q.title)}</strong><small>${categoryInfo(q.category).name} · ${q.minutes} min${saved.showPoints?' · +'+q.xp+' XP':''}</small></span>${ico('arrow',17)}</button>`).join(''):`<div class="empty"><div class="empty-icon">${ico('heart',25)}</div><h3>Your list is empty.</h3><p>When an idea sounds good, tap the heart to save it here.</p><button class="btn btn-primary" data-nav="discover">Find an idea ${ico('arrow',15)}</button></div>`}`;
   }
   const achievementDefs=[
-    {id:'first',name:'First Steps',desc:'Complete your first quest',icon:'compass',test:(d)=>d.count>=1},
-    {id:'collector',name:'The Collector',desc:'Save 5 favorite quests',icon:'heart',test:(d)=>d.favorites>=5},
-    {id:'five',name:'On a Roll',desc:'Complete 5 unique quests',icon:'sparkles',test:(d)=>d.count>=5},
-    {id:'ten',name:'Quest Seeker',desc:'Complete 10 unique quests',icon:'trophy',test:(d)=>d.count>=10},
-    {id:'explorer',name:'World Hopper',desc:'Try all six categories',icon:'compass',test:(d)=>d.distinctCategories>=6},
-    {id:'xp',name:'Rising Star',desc:'Earn 500 XP',icon:'star',test:(d)=>d.xp>=500},
-    {id:'twentyfive',name:'Adventure Mode',desc:'Complete 25 unique quests',icon:'asterisk',test:(d)=>d.count>=25},
-    {id:'legend',name:'Living Legend',desc:'Complete 60 unique quests',icon:'trophy',test:(d)=>d.count>=60}
+    {id:'first',name:'First One',desc:'Try your first activity',icon:'compass',test:(d)=>d.count>=1},
+    {id:'collector',name:'Good Taste',desc:'Save 5 ideas you like',icon:'heart',test:(d)=>d.favorites>=5},
+    {id:'five',name:'Five Things',desc:'Finish 5 different activities',icon:'sparkles',test:(d)=>d.count>=5},
+    {id:'ten',name:'Getting Out There',desc:'Finish 10 different activities',icon:'trophy',test:(d)=>d.count>=10},
+    {id:'explorer',name:'A Little of Everything',desc:'Try all six categories',icon:'compass',test:(d)=>d.distinctCategories>=6},
+    {id:'fifteen',name:'On Your Way',desc:'Finish 15 different activities',icon:'star',test:(d)=>d.count>=15},
+    {id:'twentyfive',name:'Making Time',desc:'Finish 25 different activities',icon:'asterisk',test:(d)=>d.count>=25},
+    {id:'sixty',name:'Quite a Collection',desc:'Finish 60 different activities',icon:'trophy',test:(d)=>d.count>=60}
   ];
   function journey(){
     const s=stats(), ids=completeIds(), data={...s,distinctCategories:new Set([...ids].map(id=>byId[id].category)).size};
     const next=150-(s.xp%150),pct=((s.xp%150)/150)*100;
     const recent=[...saved.history].reverse().slice(0,20);
-    return `<div class="eyebrow">PROGRESS IS PERSONAL</div><h1 class="page-title">The journey<br>is the point.</h1><p class="page-sub">Small missions add up. Every completed quest becomes a little story of your own.</p>
-    <section class="xp-card"><div class="label">CURRENT LEVEL</div><div class="xp-big">${s.level} <small>Explorer</small></div><div class="meter" role="progressbar" aria-label="Progress to next level" aria-valuenow="${s.xp%150}" aria-valuemin="0" aria-valuemax="150"><div style="width:${pct}%"></div></div><div class="meter-caption"><span>${s.xp} total XP</span><span>${next} XP to level ${s.level+1}</span></div></section>
-    <div class="stats-strip"><div class="stat"><div class="num">${s.count}</div><div class="lab">Quests done</div></div><div class="stat-sep"></div><div class="stat"><div class="num">${data.distinctCategories}/6</div><div class="lab">Categories</div></div><div class="stat-sep"></div><div class="stat"><div class="num">${achievementDefs.filter(a=>a.test(data)).length}/8</div><div class="lab">Badges</div></div></div>
-    <h2 class="subheading">Achievements</h2><section class="badges">${achievementDefs.map(a=>`<div class="achievement ${a.test(data)?'earned':'locked'}"><div class="badge-icon">${ico(a.test(data)?a.icon:'lock',19)}</div><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('')}</section>
-    <h2 class="subheading">Quest history</h2>${recent.length?recent.map(h=>`<div class="history-item"><span class="circle-symbol">${ico(categoryInfo(byId[h.id].category).symbol,19)}</span><span class="saved-info"><strong>${htmlEscape(byId[h.id].title)}</strong><small>${fmtDate(h.when)} · ${categoryInfo(byId[h.id].category).name}</small></span><span class="xp-label">${h.xp?'+'+h.xp+' XP':'Replay'}</span></div>`).join(''):`<div class="empty"><div class="empty-icon">${ico('trophy',25)}</div><h3>Your story starts here.</h3><p>Complete your first quest and you'll see it in this journal.</p><button class="btn btn-primary" data-nav="discover">Find a quest ${ico('arrow',15)}</button></div>`}`;
+    return `<div class="eyebrow">THE THINGS YOU'VE DONE</div><h1 class="page-title">Your time,<br>well spent.</h1><p class="page-sub">A simple record of what you've tried. No pressure to keep up a streak.</p>
+    ${saved.showPoints?`<section class="xp-card"><div class="label">OPTIONAL POINTS MODE</div><div class="xp-big">${s.level} <small>Level</small></div><div class="meter" role="progressbar" aria-label="Progress to next level" aria-valuenow="${s.xp%150}" aria-valuemin="0" aria-valuemax="150"><div style="width:${pct}%"></div></div><div class="meter-caption"><span>${s.xp} total XP</span><span>${next} XP to level ${s.level+1}</span></div></section>`:''}
+    <div class="stats-strip"><div class="stat"><div class="num">${s.count}</div><div class="lab">Activities done</div></div><div class="stat-sep"></div><div class="stat"><div class="num">${data.distinctCategories}/6</div><div class="lab">Categories</div></div><div class="stat-sep"></div><div class="stat"><div class="num">${achievementDefs.filter(a=>a.test(data)).length}/8</div><div class="lab">Milestones</div></div></div>
+    <h2 class="subheading">Milestones</h2><section class="badges">${achievementDefs.map(a=>`<div class="achievement ${a.test(data)?'earned':'locked'}"><div class="badge-icon">${ico(a.test(data)?a.icon:'lock',19)}</div><h3>${a.name}</h3><p>${a.desc}</p></div>`).join('')}</section>
+    <h2 class="subheading">Activity history</h2>${recent.length?recent.map(h=>`<div class="history-item"><span class="circle-symbol">${ico(categoryInfo(byId[h.id].category).symbol,19)}</span><span class="saved-info"><strong>${htmlEscape(byId[h.id].title)}</strong><small>${fmtDate(h.when)} · ${categoryInfo(byId[h.id].category).name}</small></span><span class="xp-label">${saved.showPoints?(h.xp?'+'+h.xp+' XP':'Repeat'):'Done'}</span></div>`).join(''):`<div class="empty"><div class="empty-icon">${ico('trophy',25)}</div><h3>Nothing here yet.</h3><p>Activities you mark as done will show up here.</p><button class="btn btn-primary" data-nav="discover">Find an idea ${ico('arrow',15)}</button></div>`}`;
   }
   function settingsPage(){
     return `<div class="eyebrow">YOUR SPACE</div><h1 class="page-title">Made for<br>real life.</h1><p class="page-sub">SIDEQUEST is free, private by design, and works without an account. Your progress is stored on this device.</p>
-    <div class="page-card"><div class="settings-row"><div><strong>Export progress</strong><p>Download a backup of favorites, XP and history.</p></div><button class="btn btn-light btn-small" data-action="export">${ico('download',16)} Export</button></div><div class="settings-row"><div><strong>Import backup</strong><p>Restore a SIDEQUEST backup on this device.</p></div><label for="backup-input" class="btn btn-light btn-small" style="cursor:pointer">${ico('upload',16)} Import</label><input id="backup-input" type="file" accept=".json,application/json" class="hidden-file" aria-label="Import SIDEQUEST backup"></div></div>
+    <div class="page-card"><div class="settings-row"><div><strong>Points and levels</strong><p>Optional game-style stats, turned off by default. You can enjoy SIDEQUEST without them.</p></div><label class="toggle-wrap"><input type="checkbox" id="game-stats" aria-label="Show points and levels" ${saved.showPoints?'checked':''}><span>Show</span></label></div></div>
+    <div class="page-card"><div class="settings-row"><div><strong>Export progress</strong><p>Download a backup of your saved ideas and history.</p></div><button class="btn btn-light btn-small" data-action="export">${ico('download',16)} Export</button></div><div class="settings-row"><div><strong>Import backup</strong><p>Restore a SIDEQUEST backup on this device.</p></div><label for="backup-input" class="btn btn-light btn-small" style="cursor:pointer">${ico('upload',16)} Import</label><input id="backup-input" type="file" accept=".json,application/json" class="hidden-file" aria-label="Import SIDEQUEST backup"></div></div>
     <div class="page-card"><div class="settings-row"><div><strong>Install on iPhone</strong><p>In Safari: Share → Add to Home Screen → Open as Web App.</p></div>${ico('home',21)}</div><div class="settings-row"><div><strong>Offline mode</strong><p>Open the app while online first, then it works without internet after the files are cached.</p></div>${ico('shield',21)}</div></div>
-    <div class="page-card"><div class="settings-row"><div><strong>Clear all progress</strong><p>Erases your local XP, quest history, favorites and filters.</p></div><button class="text-button warn" data-action="clear">Reset</button></div></div>
-    <p class="fineprint">SIDEQUEST v1.0 · 120 original quests · No login, ads, tracking, or paid APIs. Data is stored in this browser, so deleting website data or uninstalling the app may remove it. Export a backup to keep it safe.</p>`;
+    <div class="page-card"><div class="settings-row"><div><strong>Clear all progress</strong><p>Erases your local activity history, saved ideas, and preferences.</p></div><button class="text-button warn" data-action="clear">Reset</button></div></div>
+    <p class="fineprint">SIDEQUEST v2.0 · 120 realistic activity ideas · No login, ads, tracking, or paid APIs. Data is stored in this browser, so deleting website data or uninstalling the app may remove it. Export a backup to keep it safe.</p>`;
   }
   function renderModal(){
     if(!dialog){modalRoot.innerHTML='';return;}
     let content='';
     if(dialog.type==='complete'){
-      content=`<div class="center"><div class="modal-symbol">${ico('trophy',29)}</div><div class="eyebrow">QUEST COMPLETE</div><h2>${dialog.reward?'Nicely done!':'A familiar victory!'}</h2><p>${htmlEscape(dialog.quest.title)} is now part of your adventure journal.${dialog.reward?' Your first completion earned experience points.':' Replays are for fun and do not award extra XP.'}</p><div class="reward">${dialog.reward?'+'+dialog.reward+' XP':'Quest replayed'}</div><div class="modal-actions"><button class="btn btn-primary btn-full" data-action="next-from-modal">Next adventure ${ico('arrow',17)}</button></div></div>`;
+      content=`<div class="center"><div class="modal-symbol">${ico('trophy',29)}</div><div class="eyebrow">ACTIVITY DONE</div><h2>Nice one.</h2><p>${htmlEscape(dialog.quest.title)} is now in your activity history. Do another whenever you feel like it.</p>${saved.showPoints?`<div class="reward">${dialog.reward?'+'+dialog.reward+' XP':'Already done'}</div>`:''}<div class="modal-actions"><button class="btn btn-primary btn-full" data-action="next-from-modal">Another idea ${ico('arrow',17)}</button></div></div>`;
     }else if(dialog.type==='clear'){
-      content=`<div class="modal-symbol">${ico('trash',27)}</div><h2>Reset your journey?</h2><p>This will permanently erase your local favorites, completed quests, XP and settings. Export your progress first if you want a backup.</p><div class="modal-actions"><button class="btn btn-light" data-action="close-modal">Cancel</button><button class="btn btn-primary" data-action="confirm-clear">Yes, reset</button></div>`;
+      content=`<div class="modal-symbol">${ico('trash',27)}</div><h2>Clear your progress?</h2><p>This will permanently erase your saved ideas, activity history, and settings. Export your progress first if you want a backup.</p><div class="modal-actions"><button class="btn btn-light" data-action="close-modal">Cancel</button><button class="btn btn-primary" data-action="confirm-clear">Yes, reset</button></div>`;
     }else if(dialog.type==='quest'){
       const q=byId[dialog.id];const savedHere=saved.favorites.includes(q.id);
-      content=`<div class="modal-symbol">${ico(categoryInfo(q.category).symbol,26)}</div><div class="eyebrow">${categoryInfo(q.category).name} · ${q.minutes} MIN · +${q.xp} XP</div><h2>${htmlEscape(q.title)}</h2><p>${htmlEscape(q.description)}</p><div class="modal-actions"><button class="btn btn-light" data-action="modal-favorite" data-id="${q.id}">${ico('heart',16)} ${savedHere?'Unsave':'Save'}</button><button class="btn btn-primary" data-action="modal-play" data-id="${q.id}">${ico('arrow',16)} Play this</button></div>`;
+      content=`<div class="modal-symbol">${ico(categoryInfo(q.category).symbol,26)}</div><div class="eyebrow">${categoryInfo(q.category).name} · ${q.minutes} MIN${saved.showPoints?' · +'+q.xp+' XP':''}</div><h2>${htmlEscape(q.title)}</h2><p>${htmlEscape(q.description)}</p><div class="modal-actions"><button class="btn btn-light" data-action="modal-favorite" data-id="${q.id}">${ico('heart',16)} ${savedHere?'Unsave':'Save'}</button><button class="btn btn-primary" data-action="modal-play" data-id="${q.id}">${ico('arrow',16)} Try this</button></div>`;
     }
-    modalRoot.innerHTML=`<div class="modal-backdrop" data-action="backdrop"><div class="modal-sheet" role="dialog" aria-modal="true" aria-label="${dialog.type==='complete'?'Quest complete':dialog.type==='clear'?'Reset progress':'Quest details'}"><div style="display:flex;justify-content:flex-end;margin:-10px -8px 7px"><button class="icon-button" data-action="close-modal" aria-label="Close dialog">${ico('close',17)}</button></div>${content}</div></div>`;
+    modalRoot.innerHTML=`<div class="modal-backdrop" data-action="backdrop"><div class="modal-sheet" role="dialog" aria-modal="true" aria-label="${dialog.type==='complete'?'Activity complete':dialog.type==='clear'?'Reset progress':'Quest details'}"><div style="display:flex;justify-content:flex-end;margin:-10px -8px 7px"><button class="icon-button" data-action="close-modal" aria-label="Close dialog">${ico('close',17)}</button></div>${content}</div></div>`;
     modalRoot.querySelector('.icon-button')?.focus({preventScroll:true});
   }
   function showToast(message){
@@ -178,7 +180,7 @@
   function startQuest(id){
     if(saved.activeQuestId && saved.activeQuestId!==id){showToast('Finish or skip your active quest first.');return;}
     if(!byId[id])return;
-    saved.currentQuestId=id;saved.activeQuestId=id;dialog=null;currentView='discover';save();render();showToast('Quest accepted. You got this!');
+    saved.currentQuestId=id;saved.activeQuestId=id;dialog=null;currentView='discover';save();render();showToast('Added to your current activity.');
   }
   function completeQuest(){
     const id=saved.activeQuestId;
@@ -193,21 +195,21 @@
     try{
       if(file.size>2_000_000)throw Error('Backup is too large.');
       const payload=JSON.parse(await file.text());
-      if(!payload||payload.app!=='SIDEQUEST'||payload.version!==1||!payload.data)throw Error('This is not a SIDEQUEST v1 backup.');
+      if(!payload||payload.app!=='SIDEQUEST'||payload.version!==2||!payload.data)throw Error('Please choose a SIDEQUEST v2 backup. Older quests cannot be matched automatically.');
       saved=validate(payload.data);save();currentView='journey';dialog=null;render();showToast('Backup imported!');
     }catch(e){showToast(e.message||'Could not import the backup.');}
   }
   function exportBackup(){
-    const payload={app:'SIDEQUEST',version:1,exportedAt:new Date().toISOString(),data:saved};
+    const payload={app:'SIDEQUEST',version:2,exportedAt:new Date().toISOString(),data:saved};
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob);const anchor=document.createElement('a');anchor.href=url;anchor.download='sidequest-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);showToast('Backup downloaded.');
+    const url=URL.createObjectURL(blob);const anchor=document.createElement('a');anchor.href=url;anchor.download='sidequest-v2-backup-'+new Date().toISOString().slice(0,10)+'.json';document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);showToast('Backup downloaded.');
   }
   function perform(action,el){
     switch(action){
       case 'roll':generateQuest();break;
       case 'reset-filters': saved.filters=DEFAULT().filters;saved.currentQuestId=null;save();render();break;
       case 'start':if(saved.currentQuestId)startQuest(saved.currentQuestId);break;
-      case 'skip':saved.activeQuestId=null;save();generateQuest();showToast('Skipped. Find something that suits you.');break;
+      case 'skip':saved.activeQuestId=null;save();generateQuest();showToast('No problem. Try something else.');break;
       case 'complete':completeQuest();break;
       case 'favorite':if(saved.currentQuestId)toggleFavorite(saved.currentQuestId);break;
       case 'modal-favorite':toggleFavorite(el.dataset.id);break;
@@ -233,12 +235,13 @@
   app.addEventListener('click',clickHandler);
   modalRoot.addEventListener('click',clickHandler);
   app.addEventListener('change',e=>{
+    if(e.target.id==='game-stats'){saved.showPoints=e.target.checked;save();render();return;}
     if(e.target.matches('[data-filter]'))updateFilter(e.target.dataset.filter,e.target.value);
     if(e.target.id==='backup-input'){importBackup(e.target.files?.[0]);e.target.value='';}
   });
   document.addEventListener('keydown',e=>{if(e.key==='Escape' && dialog){dialog=null;render();}});
   if(!saved.currentQuestId && !saved.activeQuestId){
-    const initial=QUESTS[Math.floor(Math.random()*QUESTS.length)];saved.currentQuestId=initial.id;save();
+    const initial=byId['creative-01'];saved.currentQuestId=initial.id;save();
   }
   render();
   if('serviceWorker' in navigator && (location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')){

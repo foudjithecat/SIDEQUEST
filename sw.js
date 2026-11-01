@@ -1,7 +1,7 @@
 /* Offline shell cache. All relative URLs work under GitHub Pages project paths. */
-const CACHE = 'sidequest-offline-v1-20261101';
+const CACHE = 'sidequest-offline-v2-20261101';
 const ASSETS = [
-  './', './index.html', './styles.css', './quests.js', './app.js',
+  './', './index.html', './styles.css?v=2', './quests.js?v=2', './app.js?v=2',
   './manifest.webmanifest', './assets/icon-192.png', './assets/icon-512.png',
   './assets/icon-maskable-512.png', './assets/apple-touch-icon.png', './assets/favicon.svg'
 ];

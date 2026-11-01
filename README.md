@@ -1,86 +1,61 @@
-# SIDEQUEST · v1.0
+# SIDEQUEST v2.0 · Find something worth doing
 
-**Make boredom playable.** A polished, minimal, installable iPhone web app with 120 original quests. No accounts, ads, payments, trackers, frameworks, build tools, or API keys.
+A small, free iPhone-installable web app for the moments when you're bored and want an idea that actually sounds enjoyable. No account, paid server, API, or programming needed.
 
-## What's included
+## What's new in v2
 
-- 120 unique activities across **Adventure, Creative, Social, Chaos, Mind, and Wildcard** (20 in each)
-- Filters for category, available time, indoor/outdoor, solo/friends
-- Random quest picker, accept, finish, or skip
-- **XP and leveling** (150 XP per level), with XP earned only once per unique quest
-- Eight achievements, saved favorites, completion history, and progress
-- Local-device storage with JSON backup export and import
-- Offline PWA support; custom iPhone Home Screen icon
-- Responsive, mobile-first minimalist design
+- **All 120 activities have been rewritten**. This version focuses on simple everyday ideas and personal interests: photography, video editing, music, local outings, friends, creativity, curiosity, and small projects.
+- Six more grounded categories: Go out, Create, With friends, Take it easy, Learn, and Switch it up.
+- More natural writing throughout the interface: less RPG-style quest language.
+- Points and levels are **off by default**. If you like them, go to Settings → Points and levels and check Show. The app still tracks accomplishments and milestones without them.
+- Preserved features: time/inside/outside/solo/friends filters, random idea generator, favorites, done history, milestones, backups, offline service worker, custom Home Screen icon.
+- All activities are optional. Skip anything that doesn't feel right or practical.
 
-The activities are optional, safe and free. Everyone can skip anything they don't want to do.
+### What happens to your progress from v1?
 
-## Install on an iPhone using GitHub Pages (free)
+The activities are entirely different now. To avoid marking a new activity as complete when you actually completed an unrelated old one, **v2 starts with a new local save**. It does not delete v1 storage on your device. However, previous v1 favorites/history do not automatically appear in v2 and v1 backups are not importable into v2. If you want an archive of your earlier progress, export it from the old app **before updating**. This is a one-time content update; v2 saves work normally thereafter.
 
-### 1. Unzip
+## Updating your existing GitHub Pages app
 
-Right-click **SIDEQUEST_PWA_v1.zip** on your Windows computer and choose **Extract All**. Open the extracted folder.
+If you've already uploaded SIDEQUEST v1 to GitHub, **do not create a new repository**.
 
-### 2. Create a public repository
+1. Download `SIDEQUEST_PWA_v2.zip` and extract it on your computer.
+2. Open your existing `sidequest` repository at github.com and click **Add file → Upload files**.
+3. Drag the files inside the extracted folder onto GitHub. Upload `index.html`, `app.js`, `quests.js`, `styles.css`, `sw.js`, `manifest.webmanifest`, `README.md`, and the `assets` folder.
+4. GitHub should offer to replace files with the same names. Click **Commit changes**.
+5. Open your existing GitHub Pages link in Safari while connected to the internet. Refresh the page, then close and reopen the Home Screen app if needed. An older offline copy may need a second reload to update.
 
-1. Go to <https://github.com/new> and sign in to a free GitHub account.
-2. Name the repository **sidequest**.
-3. Set visibility to **Public** (needed for GitHub Pages on free accounts).
-4. Leave **Add a README file** unchecked, then click **Create repository**.
+Your GitHub Pages URL stays exactly the same, usually `https://USERNAME.github.io/sidequest/`.
 
-### 3. Upload the app's files
+## Installing from scratch (free)
 
-1. In the new repository choose **uploading an existing file**, or **Add file → Upload files**.
-2. Select **everything inside** your unzipped `SIDEQUEST_PWA` folder, including the `assets` folder. Upload the files themselves — **not the ZIP file and not a parent folder**.
-3. The repository's top level must contain `index.html`, `styles.css`, `app.js`, `quests.js`, `sw.js`, `manifest.webmanifest`, and the `assets` folder.
+1. Download and extract `SIDEQUEST_PWA_v2.zip`.
+2. Sign in at <https://github.com/new>, create a repository called `sidequest`, and choose **Public**.
+3. On the new repository click **uploading an existing file** (or **Add file → Upload files**). Upload **everything inside** the extracted app folder, not the ZIP itself. `index.html` must be at the repository root and icons must remain in `assets/`.
 4. Click **Commit changes**.
+5. Go to the repository **Settings → Pages**, choose **Deploy from a branch**, `main`, `/ (root)`, and **Save**.
+6. Wait for GitHub to show your **Visit site** link on the Pages settings page and open it in iPhone **Safari**.
+7. In Safari, choose **Share → Add to Home Screen**, enable **Open as Web App** if offered, and tap **Add**.
+8. Open SIDEQUEST once while online so the files can be cached. Afterwards try opening it in Airplane Mode to test offline support.
 
-If your browser does not support dragging folders, upload the top-level files first, then use **Add file → Upload files** to drag the full `assets` folder onto GitHub. Verify all icon files are under `assets/`.
+## Test locally on Windows (optional)
 
-### 4. Publish the website
+Open a Command Prompt in the extracted folder (in File Explorer's address bar, type `cmd`), then run `py -m http.server 8000` if Python is installed. Visit `http://localhost:8000` on your computer. The app's full offline features require HTTP localhost or HTTPS. Opening index.html directly may not support offline features.
 
-1. In your repository click **Settings**.
-2. In the left menu select **Pages**.
-3. Under **Build and deployment**, set **Source → Deploy from a branch**.
-4. Choose branch `main` and folder `/ (root)`; click **Save**.
-5. After the Pages deployment completes, the **Visit site** link will point to `https://YOUR-USERNAME.github.io/sidequest/`.
+## Privacy, backups & notes
 
-Open the URL on your computer to check it first.
+- Saved ideas, completed activities, filters and optional points stay in this browser/device using `localStorage`; the app has no account or cloud sync.
+- Use **Settings → Export** to save a JSON backup and **Settings → Import** to restore a v2 backup.
+- Removing site/app data can erase progress. Back it up before switching phones.
+- Activities are suggestions, not obligations. Check weather, local opening hours, and your own circumstances before outdoor plans.
+- The website's code is public if hosted with free GitHub Pages, but your on-device activity history is not uploaded to GitHub.
 
-### 5. Install on iPhone
+## Files
 
-1. Open the GitHub Pages URL in **Safari** on your iPhone.
-2. Tap the **Share** button (you may first need to open the Page Menu).
-3. Choose **Add to Home Screen**. If missing, scroll to **Edit Actions** and enable it.
-4. Enable **Open as Web App** when offered, then tap **Add**.
-5. The **SIDEQUEST** icon will appear on the Home Screen. Open once while online to allow offline caching.
-
-**Important:** GitHub Pages hosts the app publicly, but your personal quest history stays only on your iPhone in browser/app storage. No data is synced. Use Settings → Export progress for backups.
-
-## Test on your computer without GitHub
-
-You can double-click `index.html` for a basic preview, but service workers won't work from `file://`. To test the full PWA locally:
-
-1. Install Python, if needed.
-2. Open the extracted app folder in Windows File Explorer.
-3. Click the Explorer address bar, type `cmd`, press Enter.
-4. Enter `py -m http.server 8000`.
-5. Visit `http://localhost:8000` on that computer.
-
-The install and offline features require HTTPS in normal use. GitHub Pages provides that HTTPS for free; localhost is a special exception for testing. On your iPhone, use the GitHub Pages HTTPS URL instead of your PC's localhost address.
-
-## Update the app later
-
-Upload the modified files into the same GitHub repository and commit the changes. For offline-cached code changes, increment the version in `sw.js` (the `CACHE` string) so old files are replaced. Reload SIDEQUEST when it is online. Local progress normally survives file updates because it is stored separately, but keeping a backup is recommended.
-
-## File guide
-
-- `index.html` — app entry point and metadata
-- `styles.css` — responsive minimalist UI
-- `quests.js` — original 120-quest data
-- `app.js` — filters, gameplay, stats, achievements, backups, local storage
-- `sw.js` — offline caching
-- `manifest.webmanifest` — PWA setup and launch scope
-- `assets/` — custom icons and favicon
-
-© SIDEQUEST demo project. Quests were written for this app.
+- `index.html`: page entry, metadata, loading references
+- `app.js`: app interface, filtering, favorites, history, and saved settings
+- `quests.js`: all 120 rewritten activities
+- `styles.css`: mobile interface
+- `manifest.webmanifest`: app manifest, Home Screen launch settings
+- `sw.js`: offline service worker cache (version bumped for this update)
+- `assets/`: app icons
